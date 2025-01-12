@@ -95,55 +95,23 @@ public class Util {
   }
 
   public static String printBlockList(BlockList list, boolean selfType) {
-    List<Block> blocks = list.getBlockList();
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
-    JSONArray jsonArray = new JSONArray();
-    blocks.stream().forEach(block -> jsonArray.add(printBlockToJSON(block, selfType)));
-    jsonObject.put("block", jsonArray);
-
-    return jsonObject.toJSONString();
+    return JsonFormat.printToString(list, selfType);
   }
 
   public static String printBlock(Block block, boolean selfType) {
-    return printBlockToJSON(block, selfType).toJSONString();
+    return JsonFormat.printToString(block, selfType);
   }
 
-  public static JSONObject printBlockToJSON(Block block, boolean selfType) {
-    BlockCapsule blockCapsule = new BlockCapsule(block);
-    String blockID = ByteArray.toHexString(blockCapsule.getBlockId().getBytes());
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(block, selfType));
-    jsonObject.put("blockID", blockID);
-    if (!blockCapsule.getTransactions().isEmpty()) {
-      jsonObject.put("transactions",
-          printTransactionListToJSON(blockCapsule.getTransactions(), selfType));
-    }
-    return jsonObject;
-  }
 
   public static String printTransactionList(TransactionList list, boolean selfType) {
-    List<Transaction> transactions = list.getTransactionList();
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
-    JSONArray jsonArray = new JSONArray();
-    transactions.stream()
-        .forEach(transaction -> jsonArray.add(printTransactionToJSON(transaction, selfType)));
-    jsonObject.put(TRANSACTION, jsonArray);
-
-    return jsonObject.toJSONString();
+    return JsonFormat.printToString(list, selfType);
   }
 
   public static String printTransactionIdList(TransactionIdList list, boolean selfType) {
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
+    return JsonFormat.printToString(list, selfType);
 
-    return jsonObject.toJSONString();
   }
 
-  public static JSONArray printTransactionListToJSON(List<TransactionCapsule> list,
-      boolean selfType) {
-    JSONArray transactions = new JSONArray();
-    list.stream().forEach(transactionCapsule -> transactions
-        .add(printTransactionToJSON(transactionCapsule.getInstance(), selfType)));
-    return transactions;
-  }
 
   public static String printTransaction(Transaction transaction, boolean selfType) {
     return printTransactionToJSON(transaction, selfType).toJSONString();
