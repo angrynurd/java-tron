@@ -1,54 +1,49 @@
 package org.tron.core.services.cacheprovider;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.tron.core.Wallet;
 import org.tron.core.services.http.JsonFormat;
 import org.tron.protos.Protocol.Block;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Service
 public class LatestBlockProvider {
     private static final Logger logger = LoggerFactory.getLogger(LatestBlockProvider.class);
 
-    private final Wallet wallet;
-    private static volatile LatestBlockProvider instance;
+    @Autowired
+    private Wallet wallet;
 
-    // Cache configuration
-    private static final Cache<String, BlockWrapper> localCache = Caffeine.newBuilder()
-            .expireAfterWrite(2900, TimeUnit.MILLISECONDS)
-            .maximumSize(1)
-            .build();
-
+    private static final ConcurrentHashMap<String, BlockWrapper> localCache = new ConcurrentHashMap<>();
     private static final String LATEST_BLOCK_KEY = "LATEST_BLOCK";
-    private static volatile long lastBlockNum = 0;
-    private static volatile long lastUpdateTime = 0;
+    private static long lastBlockNum = 0;
+    private static long lastUpdateTime = 0;
 
-    // Scheduled executor for background tasks
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    private LatestBlockProvider(Wallet wallet) {
-        this.wallet = wallet;
+    // Remove singleton pattern related code
+    public LatestBlockProvider() {
+    }
+
+    @PostConstruct
+    private void init() {
         startBlockFreshnessChecker();
     }
 
-    // Singleton pattern with double-check locking
-    public static LatestBlockProvider getInstance(Wallet wallet) {
-        if (instance == null) {
-            synchronized (LatestBlockProvider.class) {
-                if (instance == null) {
-                    instance = new LatestBlockProvider(wallet);
-                }
-            }
-        }
-        return instance;
+    @PreDestroy
+    public void shutdown() {
+        scheduler.shutdown();
     }
 
-    // Block wrapper class
+    // Rest of the code remains the same, just remove static modifiers
     private static class BlockWrapper {
         final Block block;
         final long timestamp;
@@ -59,7 +54,7 @@ public class LatestBlockProvider {
         BlockWrapper(Block block) throws Exception {
             this.block = block;
             this.timestamp = System.currentTimeMillis();
-            this.blockNum = block.getNumber();
+            this.blockNum = block.getBlockHeader().getRawData().getNumber();
             this.visibleJson = JsonFormat.printToString(block, true);
             this.invisibleJson = JsonFormat.printToString(block, false);
         }
@@ -75,9 +70,13 @@ public class LatestBlockProvider {
             long expectedBlockNum = lastBlockNum + (timeDiff / 3000);
             return blockNum < expectedBlockNum;
         }
+
+        boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > 2900;
+        }
     }
 
-    // Main public method to get latest block JSON
+    // Rest of the methods remain the same
     public String getLatestBlockJson(boolean visible) {
         try {
             BlockWrapper blockWrapper = getLatestBlockWrapper();
@@ -91,16 +90,15 @@ public class LatestBlockProvider {
         }
     }
 
-    // Get the actual Block object if needed
     public Block getLatestBlock() {
         BlockWrapper wrapper = getLatestBlockWrapper();
         return wrapper != null ? wrapper.block : null;
     }
 
     private BlockWrapper getLatestBlockWrapper() {
-        BlockWrapper cached = localCache.getIfPresent(LATEST_BLOCK_KEY);
+        BlockWrapper cached = localCache.get(LATEST_BLOCK_KEY);
 
-        if (cached == null || cached.isStale()) {
+        if (cached == null || cached.isExpired() || cached.isStale()) {
             return refreshBlock();
         }
 
@@ -122,7 +120,7 @@ public class LatestBlockProvider {
                 long timeSinceLastUpdate = currentTime - lastUpdateTime;
                 if (timeSinceLastUpdate > 4000) {
                     logger.warn("Received old block number: {} (last: {}), forcing refresh",
-                            newBlockNum, lastBlockNum);
+                        newBlockNum, lastBlockNum);
                     newBlock = wallet.getNowBlock();
                     if (newBlock != null) {
                         wrapper = new BlockWrapper(newBlock);
@@ -148,8 +146,8 @@ public class LatestBlockProvider {
     private void startBlockFreshnessChecker() {
         scheduler.scheduleAtFixedRate(() -> {
             try {
-                BlockWrapper current = localCache.getIfPresent(LATEST_BLOCK_KEY);
-                if (current != null && current.isStale()) {
+                BlockWrapper current = localCache.get(LATEST_BLOCK_KEY);
+                if (current != null && (current.isStale() || current.isExpired())) {
                     logger.info("Detected stale block, triggering refresh");
                     refreshBlock();
                 }
@@ -157,10 +155,16 @@ public class LatestBlockProvider {
                 logger.error("Error in block freshness verification", e);
             }
         }, 3, 3, TimeUnit.SECONDS);
-    }
 
-    // Cleanup method
-    public void shutdown() {
-        scheduler.shutdown();
+        scheduler.scheduleAtFixedRate(() -> {
+            try {
+                BlockWrapper current = localCache.get(LATEST_BLOCK_KEY);
+                if (current != null && current.isExpired()) {
+                    localCache.remove(LATEST_BLOCK_KEY, current);
+                }
+            } catch (Exception e) {
+                logger.error("Error in cache cleanup", e);
+            }
+        }, 1, 1, TimeUnit.SECONDS);
     }
 }
