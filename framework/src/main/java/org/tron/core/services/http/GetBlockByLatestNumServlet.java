@@ -1,6 +1,7 @@
 package org.tron.core.services.http;
 
 import java.io.IOException;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,13 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
   private static final long BLOCK_LIMIT_NUM = 100;
   @Autowired
   private Wallet wallet;
+
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmupBlocklist();
+  }
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
