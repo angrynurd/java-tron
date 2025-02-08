@@ -4,8 +4,8 @@ import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.server.ConnectionLimit;
-import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
@@ -309,6 +309,24 @@ public class FullNodeHttpApiService extends HttpService {
       apiServer = new Server(port);
       ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
       context.setContextPath("/");
+
+      // HTTP配置优化
+      HttpConfiguration httpConfig = new HttpConfiguration();
+      httpConfig.setOutputBufferSize(128 * 1024);
+
+      ServerConnector connector = new ServerConnector(apiServer);
+      connector.addConnectionFactory(new HttpConnectionFactory(httpConfig));
+      apiServer.addConnector(connector);
+
+      // 配置gzip
+      GzipHandler gzipHandler = new GzipHandler();
+      gzipHandler.setMinGzipSize(2048);
+      gzipHandler.setCompressionLevel(6);
+      gzipHandler.setIncludedMimeTypes(
+          "application/json"
+      );
+      gzipHandler.setHandler(context);
+
       apiServer.setHandler(context);
 
       context.addServlet(new ServletHolder(getAccountServlet), "/wallet/getaccount");
@@ -524,6 +542,9 @@ public class FullNodeHttpApiService extends HttpService {
       if (maxHttpConnectNumber > 0) {
         apiServer.addBean(new ConnectionLimit(maxHttpConnectNumber, apiServer));
       }
+
+
+
 
       // filters the specified APIs
       // when node is lite fullnode and openHistoryQueryWhenLiteFN is false
