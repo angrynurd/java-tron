@@ -16,6 +16,9 @@ public class GetNowBlockServlet extends RateLimiterServlet {
   @Autowired
   private Wallet wallet;
 
+  @Autowired
+  private BlockCacheProvider blockCacheProvider;
+
   @PostConstruct
   public void init() {
     // 预热特定场景
@@ -27,6 +30,10 @@ public class GetNowBlockServlet extends RateLimiterServlet {
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
       boolean visible = Util.getVisible(request);
+      if(visible){
+        response.getWriter().println(blockCacheProvider.getNowBlock());
+      }
+
       Block reply = wallet.getNowBlock();
       if (reply != null) {
         response.getWriter().println(JsonFormat.printToString(reply, visible));

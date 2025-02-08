@@ -20,6 +20,8 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
   @Autowired
   private Wallet wallet;
 
+  @Autowired
+  private BlockCacheProvider blockCacheProvider;
 
   @PostConstruct
   public void init() {
@@ -48,7 +50,10 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
 
   private void fillResponse(boolean visible, long num, HttpServletResponse response)
       throws IOException {
-    if (num > 0 && num < BLOCK_LIMIT_NUM) {
+    if (num > 0 && num < BLOCK_LIMIT_NUM ) {
+      if(visible){
+        response.getWriter().println(blockCacheProvider.getBlockByLatestNum(num));
+      }
       BlockList reply = wallet.getBlockByLatestNum(num);
       if (reply != null) {
         response.getWriter().println(JsonFormat.printToString(reply, visible));
