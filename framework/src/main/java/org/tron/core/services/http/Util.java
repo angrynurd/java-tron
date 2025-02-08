@@ -20,10 +20,8 @@ import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -94,55 +92,23 @@ public class Util {
   }
 
   public static String printBlockList(BlockList list, boolean selfType) {
-    List<Block> blocks = list.getBlockList();
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
-    JSONArray jsonArray = new JSONArray();
-    blocks.stream().forEach(block -> jsonArray.add(printBlockToJSON(block, selfType)));
-    jsonObject.put("block", jsonArray);
-
-    return jsonObject.toJSONString();
+    return JsonFormat.printToString(list, selfType);
   }
 
   public static String printBlock(Block block, boolean selfType) {
-    return printBlockToJSON(block, selfType).toJSONString();
+    return JsonFormat.printToString(block, selfType);
   }
 
-  public static JSONObject printBlockToJSON(Block block, boolean selfType) {
-    BlockCapsule blockCapsule = new BlockCapsule(block);
-    String blockID = ByteArray.toHexString(blockCapsule.getBlockId().getBytes());
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(block, selfType));
-    jsonObject.put("blockID", blockID);
-    if (!blockCapsule.getTransactions().isEmpty()) {
-      jsonObject.put("transactions",
-          printTransactionListToJSON(blockCapsule.getTransactions(), selfType));
-    }
-    return jsonObject;
-  }
 
   public static String printTransactionList(TransactionList list, boolean selfType) {
-    List<Transaction> transactions = list.getTransactionList();
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
-    JSONArray jsonArray = new JSONArray();
-    transactions.stream()
-        .forEach(transaction -> jsonArray.add(printTransactionToJSON(transaction, selfType)));
-    jsonObject.put(TRANSACTION, jsonArray);
-
-    return jsonObject.toJSONString();
+    return JsonFormat.printToString(list, selfType);
   }
 
   public static String printTransactionIdList(TransactionIdList list, boolean selfType) {
-    JSONObject jsonObject = JSONObject.parseObject(JsonFormat.printToString(list, selfType));
+    return JsonFormat.printToString(list, selfType);
 
-    return jsonObject.toJSONString();
   }
 
-  public static JSONArray printTransactionListToJSON(List<TransactionCapsule> list,
-      boolean selfType) {
-    JSONArray transactions = new JSONArray();
-    list.stream().forEach(transactionCapsule -> transactions
-        .add(printTransactionToJSON(transactionCapsule.getInstance(), selfType)));
-    return transactions;
-  }
 
   public static String printTransaction(Transaction transaction, boolean selfType) {
     return printTransactionToJSON(transaction, selfType).toJSONString();
@@ -579,6 +545,77 @@ public class Util {
         logBuilder
             .setAddress(ByteString.copyFrom(TransactionTrace.convertToTronAddress(newAddress)));
       }
+
+      newLogList.add(logBuilder.build());
+    }
+
+    return newLogList;
+  }
+
+  /**
+   * Parallel version for processing large number of logs
+   */
+  public static List<Log> convertLogAddressToTronAddressParallel(TransactionInfo transactionInfo) {
+    List<Log> logList = transactionInfo.getLogList();
+    int size = logList.size();
+    if (size == 0) {
+      return Collections.emptyList();
+    }
+
+    // Use sequential processing for small lists
+    if (size < 1000) {
+      return convertLogAddressToTronAddressSequential(logList);
+    }
+
+    // Parallel processing for large lists
+    return logList.parallelStream()
+            .map(log -> {
+              ByteString address = log.getAddress();
+              byte[] oldAddress = address.toByteArray();
+
+              if (oldAddress.length == 0 || oldAddress.length > 20) {
+                return log;
+              }
+
+              Log.Builder logBuilder = Log.newBuilder()
+                      .setData(log.getData())
+                      .addAllTopics(log.getTopicsList());
+
+              byte[] newAddress = new byte[20];
+              System.arraycopy(oldAddress, 0, newAddress, 20 - oldAddress.length, oldAddress.length);
+              logBuilder.setAddress(ByteString.copyFrom(TransactionTrace.convertToTronAddress(newAddress)));
+
+              return logBuilder.build();
+            })
+            .collect(Collectors.toList());
+  }
+
+  /**
+   * Helper method for sequential processing of logs
+   *
+   * @param logList List of logs to process
+   * @return List of processed logs
+   */
+  private static List<Log> convertLogAddressToTronAddressSequential(List<Log> logList) {
+    List<Log> newLogList = new ArrayList<>(logList.size());
+    byte[] newAddress = new byte[20];
+
+    for (Log log : logList) {
+      ByteString address = log.getAddress();
+      byte[] oldAddress = address.toByteArray();
+
+      if (oldAddress.length == 0 || oldAddress.length > 20) {
+        newLogList.add(log);
+        continue;
+      }
+
+      Log.Builder logBuilder = Log.newBuilder()
+              .setData(log.getData())
+              .addAllTopics(log.getTopicsList());
+
+      Arrays.fill(newAddress, (byte) 0);
+      System.arraycopy(oldAddress, 0, newAddress, 20 - oldAddress.length, oldAddress.length);
+      logBuilder.setAddress(ByteString.copyFrom(TransactionTrace.convertToTronAddress(newAddress)));
 
       newLogList.add(logBuilder.build());
     }

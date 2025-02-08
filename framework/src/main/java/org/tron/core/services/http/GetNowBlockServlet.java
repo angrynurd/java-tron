@@ -21,7 +21,7 @@ public class GetNowBlockServlet extends RateLimiterServlet {
       boolean visible = Util.getVisible(request);
       Block reply = wallet.getNowBlock();
       if (reply != null) {
-        response.getWriter().println(Util.printBlock(reply, visible));
+        response.getWriter().println(JsonFormat.printToString(reply, visible));
       } else {
         response.getWriter().println("{}");
       }
