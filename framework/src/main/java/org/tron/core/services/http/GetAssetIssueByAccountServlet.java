@@ -13,6 +13,8 @@ import org.tron.common.utils.ByteArray;
 import org.tron.core.Wallet;
 import org.tron.protos.Protocol.Account;
 
+import static org.tron.core.services.http.AssetIssueUtil.serializeAssetList;
+
 
 @Component
 @Slf4j(topic = "API")
@@ -55,7 +57,9 @@ public class GetAssetIssueByAccountServlet extends RateLimiterServlet {
       throws Exception {
     AssetIssueList reply = wallet.getAssetIssueByAccountParallel(address);
     if (reply != null) {
-      response.getWriter().println(JsonFormat.printToString(reply, visible));
+      //String result = JsonFormat.printToString(reply, visible);
+      String result=  serializeAssetList(reply,visible);
+      response.getWriter().println(result);
     } else {
       response.getWriter().println("{}");
     }

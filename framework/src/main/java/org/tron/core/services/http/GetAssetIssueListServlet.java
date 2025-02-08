@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 import org.tron.api.GrpcAPI.AssetIssueList;
 import org.tron.core.Wallet;
 
+import static org.tron.core.services.http.AssetIssueUtil.serializeAssetList;
+
 @Component
 @Slf4j(topic = "API")
 public class GetAssetIssueListServlet extends RateLimiterServlet {
@@ -29,7 +31,9 @@ public class GetAssetIssueListServlet extends RateLimiterServlet {
       boolean visible = Util.getVisible(request);
       AssetIssueList reply = wallet.getAssetIssueList();
       if (reply != null) {
-        response.getWriter().println(JsonFormat.printToString(reply, visible));
+        //String result = JsonFormat.printToString(reply, visible);
+        String result=  serializeAssetList(reply,visible);
+        response.getWriter().println(result);
       } else {
         response.getWriter().println("{}");
       }

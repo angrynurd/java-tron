@@ -14,6 +14,8 @@ import org.tron.api.GrpcAPI.AssetIssueList;
 import org.tron.common.utils.ByteArray;
 import org.tron.core.Wallet;
 
+import static org.tron.core.services.http.AssetIssueUtil.serializeAssetList;
+
 
 @Component
 @Slf4j(topic = "API")
@@ -58,8 +60,9 @@ public class GetAssetIssueListByNameServlet extends RateLimiterServlet {
     AssetIssueList reply = wallet.getAssetIssueListByName(ByteString.copyFrom(
         ByteArray.fromHexString(value)));
     if (reply != null) {
-      response.getWriter().println(JsonFormat.printToString(reply, visible));
-    } else {
+      //String result = JsonFormat.printToString(reply, visible);
+      String result=  serializeAssetList(reply,visible);
+      response.getWriter().println(result);    } else {
       response.getWriter().println("{}");
     }
   }
