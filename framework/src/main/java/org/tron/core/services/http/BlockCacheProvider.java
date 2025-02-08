@@ -76,10 +76,8 @@ public class BlockCacheProvider {
    * 查询最新的N个区块（JSON数组格式）
    */
   public String getBlockByLatestNum(long num) {
-    System.out.printf("hit cache");
     long limit = Math.min(num, 100);
     StringBuilder sb = new StringBuilder((int) (limit * 1024)); // 预分配内存
-
 
     lock.readLock().lock();
     try {
@@ -93,8 +91,6 @@ public class BlockCacheProvider {
     } finally {
       lock.readLock().unlock();
     }
-
-
     return sb.toString();
   }
 
@@ -105,14 +101,11 @@ public class BlockCacheProvider {
     try {
       if (cache.isEmpty()) {
         // 降级回源调用
-        System.out.printf("not hit cache");
         Protocol.Block block = wallet.getNowBlock();
         return JsonFormat.printToString(block, true);
       }
-      System.out.printf("hit cache");
       String result = cache.getLast();
       long endTime2 = System.currentTimeMillis();
-      System.out.printf("调用缓存耗时: %dms%n", endTime2 - startTime2);
       return result;
     } catch (Exception e) {
       throw new RuntimeException(e);
