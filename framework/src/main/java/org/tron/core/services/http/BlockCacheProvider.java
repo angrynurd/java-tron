@@ -1,5 +1,6 @@
 package org.tron.core.services.http;
 
+import org.springframework.stereotype.Component;
 import org.tron.api.GrpcAPI;
 import org.tron.core.Wallet;
 import org.tron.protos.Protocol;
@@ -12,7 +13,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
+@Component
 public class BlockCacheProvider {
   private final Wallet wallet;
   private final Deque<String> cache = new ArrayDeque<>(100);
