@@ -330,10 +330,17 @@ public class FullNodeHttpApiService extends HttpService {
 
       // 配置gzip
       GzipHandler gzipHandler = new GzipHandler();
-      gzipHandler.setMinGzipSize(1024);
+      gzipHandler.setMinGzipSize(1024);//1KB
       gzipHandler.setCompressionLevel(6);
+      gzipHandler.setIncludedMethods("POST", "GET");
+      // 设置压缩类型
       gzipHandler.setIncludedMimeTypes(
-          "application/json"
+          "text/html",
+          "text/plain",
+          "text/xml",
+          "text/css",
+          "application/json",
+          "application/javascript"
       );
       gzipHandler.setHandler(context);
 
