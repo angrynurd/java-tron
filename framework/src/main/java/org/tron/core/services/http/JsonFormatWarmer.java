@@ -55,15 +55,18 @@ public class JsonFormatWarmer {
 
   public static void warmupTx() {
     // 构造Transaction对象
-    Protocol.Transaction transaction = Protocol.Transaction.newBuilder()
+    Protocol.Transaction.Builder transactionBuilder = Protocol.Transaction.newBuilder()
         .setRawData(Protocol.Transaction.raw.newBuilder()
             .setTimestamp(System.currentTimeMillis())
             .setExpiration(System.currentTimeMillis() + 60_000)
-            .build())
-        .setRet(0, Protocol.Transaction.Result.newBuilder()
-            .setContractRet(Protocol.Transaction.Result.contractResult.SUCCESS)
-            .build())
-        .build();
+            .build());
+
+    // 使用 addRet 替代 setRet
+    transactionBuilder.addRet(Protocol.Transaction.Result.newBuilder()
+        .setContractRet(Protocol.Transaction.Result.contractResult.SUCCESS)
+        .build());
+
+    Protocol.Transaction transaction = transactionBuilder.build();
 
     // 构造TransactionInfo对象
     Protocol.TransactionInfo transactionInfo = Protocol.TransactionInfo.newBuilder()
