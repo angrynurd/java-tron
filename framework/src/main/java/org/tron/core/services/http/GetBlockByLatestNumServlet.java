@@ -4,6 +4,7 @@ import java.io.IOException;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
 
   @PostConstruct
   public void init() {
-    blockCacheProvider= new BlockCacheProvider(wallet);
+    blockCacheProvider = new BlockCacheProvider(wallet);
     // 预热特定场景
     JsonFormatWarmer.warmupBlocklist();
   }
@@ -50,9 +51,10 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
 
   private void fillResponse(boolean visible, long num, HttpServletResponse response)
       throws IOException {
-    if (num > 0 && num < BLOCK_LIMIT_NUM ) {
-      if(visible){
+    if (num > 0 && num < BLOCK_LIMIT_NUM) {
+      if (visible) {
         response.getWriter().println(blockCacheProvider.getBlockByLatestNum(num));
+        return;
       }
       BlockList reply = wallet.getBlockByLatestNum(num);
       if (reply != null) {
