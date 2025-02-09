@@ -52,6 +52,8 @@ public class GetBlockByLatestNumServlet extends RateLimiterServlet {
   private void fillResponse(boolean visible, long num, HttpServletResponse response)
       throws IOException {
     if (num > 0 && num < BLOCK_LIMIT_NUM) {
+      response.setHeader("Content-Encoding", "gzip");
+      response.setHeader("Transfer-Encoding", "chunked");
       if (visible) {
         response.getWriter().println(blockCacheProvider.getBlockByLatestNum(num));
         return;

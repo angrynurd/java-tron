@@ -51,6 +51,8 @@ public class GetBlockByLimitNextServlet extends RateLimiterServlet {
       HttpServletResponse response)
       throws IOException {
     if (endNum > 0 && endNum > startNum && endNum - startNum <= BLOCK_LIMIT_NUM) {
+      response.setHeader("Content-Encoding", "gzip");
+      response.setHeader("Transfer-Encoding", "chunked");
       BlockList reply = wallet.getBlocksByLimitNext(startNum, endNum - startNum);
       if (reply != null) {
         response.getWriter().println(JsonFormat.printToString(reply, visible));

@@ -95,7 +95,6 @@ public class BlockCacheProvider {
 
 
   public String getNowBlock() {
-    long startTime2 = System.currentTimeMillis();
     lock.readLock().lock();
     try {
       if (cache.isEmpty()) {
@@ -104,7 +103,6 @@ public class BlockCacheProvider {
         return JsonFormat.printToString(block, true);
       }
       String result = cache.getLast();
-      long endTime2 = System.currentTimeMillis();
       return result;
     } catch (Exception e) {
       throw new RuntimeException(e);
