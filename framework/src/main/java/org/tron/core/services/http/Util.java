@@ -563,7 +563,7 @@ public class Util {
     }
 
     // Use sequential processing for small lists
-    if (size < 1000) {
+    if (size < 100) {
       return convertLogAddressToTronAddressSequential(logList);
     }
 

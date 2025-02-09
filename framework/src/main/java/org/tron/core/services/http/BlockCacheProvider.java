@@ -56,7 +56,6 @@ public class BlockCacheProvider {
       Protocol.Block latestBlock = wallet.getNowBlock();
       String json = JsonFormat.printToString(latestBlock, true);
 
-
       lock.writeLock().lock();
       try {
         cache.addLast(json);

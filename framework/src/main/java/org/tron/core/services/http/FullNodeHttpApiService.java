@@ -312,7 +312,7 @@ public class FullNodeHttpApiService extends HttpService {
 
       // HTTP配置优化
       HttpConfiguration httpConfig = new HttpConfiguration();
-      httpConfig.setOutputBufferSize(128 * 1024);
+      httpConfig.setOutputBufferSize(256 * 1024);
 
       ServerConnector connector = new ServerConnector(apiServer);
       connector.addConnectionFactory(new HttpConnectionFactory(httpConfig));
@@ -320,7 +320,7 @@ public class FullNodeHttpApiService extends HttpService {
 
       // 配置gzip
       GzipHandler gzipHandler = new GzipHandler();
-      gzipHandler.setMinGzipSize(2048);
+      gzipHandler.setMinGzipSize(1024);
       gzipHandler.setCompressionLevel(6);
       gzipHandler.setIncludedMimeTypes(
           "application/json"
