@@ -3,10 +3,12 @@ package org.tron.core.services.http;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.protobuf.ByteString;
+
 import java.io.IOException;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -61,8 +63,9 @@ public class GetAssetIssueListByNameServlet extends RateLimiterServlet {
         ByteArray.fromHexString(value)));
     if (reply != null) {
       //String result = JsonFormat.printToString(reply, visible);
-      String result=  serializeAssetList(reply,visible);
-      response.getWriter().println(result);    } else {
+      String result = serializeAssetList(reply, visible);
+      response.getWriter().println(result);
+    } else {
       response.getWriter().println("{}");
     }
   }

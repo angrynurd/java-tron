@@ -328,10 +328,14 @@ public class FullNodeHttpApiService extends HttpService {
       connector.setPort(port);
       apiServer.setConnectors(new Connector[] { connector });
 
-      // 配置gzip
+      // 配置gzip压缩
       GzipHandler gzipHandler = new GzipHandler();
       gzipHandler.setMinGzipSize(1024);//1KB
       gzipHandler.setCompressionLevel(6);
+      gzipHandler.setInflateBufferSize(32 * 1024);
+
+      // 优化同步设置
+      gzipHandler.setSyncFlush(false); // 禁用同步刷新以提高性能
       gzipHandler.setIncludedMethods("POST", "GET");
       // 设置压缩类型
       gzipHandler.setIncludedMimeTypes(

@@ -33,6 +33,8 @@ public class GetAssetIssueListServlet extends RateLimiterServlet {
       if (reply != null) {
         //String result = JsonFormat.printToString(reply, visible);
         String result=  serializeAssetList(reply,visible);
+        response.setHeader("Content-Encoding", "gzip");
+        response.setHeader("Transfer-Encoding", "chunked");
         response.getWriter().println(result);
       } else {
         response.getWriter().println("{}");
