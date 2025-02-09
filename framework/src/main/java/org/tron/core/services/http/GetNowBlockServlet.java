@@ -16,11 +16,11 @@ public class GetNowBlockServlet extends RateLimiterServlet {
   @Autowired
   private Wallet wallet;
 
-  @Autowired
   private BlockCacheProvider blockCacheProvider;
 
   @PostConstruct
   public void init() {
+    blockCacheProvider = new BlockCacheProvider(wallet);
     // 预热特定场景
     JsonFormatWarmer.warmupBlock();
   }

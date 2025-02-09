@@ -13,7 +13,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-@Component
 public class BlockCacheProvider {
   private final Wallet wallet;
   private final Deque<String> cache = new ArrayDeque<>(100);
