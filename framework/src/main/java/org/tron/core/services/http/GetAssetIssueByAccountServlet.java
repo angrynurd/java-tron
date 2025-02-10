@@ -1,6 +1,8 @@
 package org.tron.core.services.http;
 
 import com.google.protobuf.ByteString;
+
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,8 @@ import org.tron.common.utils.ByteArray;
 import org.tron.core.Wallet;
 import org.tron.protos.Protocol.Account;
 
+import static org.tron.core.services.http.AssetIssueUtil.serializeAssetList;
+
 
 @Component
 @Slf4j(topic = "API")
@@ -18,6 +22,12 @@ public class GetAssetIssueByAccountServlet extends RateLimiterServlet {
 
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmuptrc10();
+  }
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
@@ -47,7 +57,9 @@ public class GetAssetIssueByAccountServlet extends RateLimiterServlet {
       throws Exception {
     AssetIssueList reply = wallet.getAssetIssueByAccountParallel(address);
     if (reply != null) {
-      response.getWriter().println(JsonFormat.printToString(reply, visible));
+      //String result = JsonFormat.printToString(reply, visible);
+      String result=  serializeAssetList(reply,visible);
+      response.getWriter().println(result);
     } else {
       response.getWriter().println("{}");
     }

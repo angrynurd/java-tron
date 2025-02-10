@@ -3,13 +3,15 @@ package org.tron.core.services.http;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
+
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.jetty.server.ConnectionLimit;
-import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.common.application.HttpService;
@@ -306,9 +308,46 @@ public class FullNodeHttpApiService extends HttpService {
   @Override
   public void start() {
     try {
-      apiServer = new Server(port);
+
+      QueuedThreadPool threadPool = new QueuedThreadPool();
+      int cpuCores = Runtime.getRuntime().availableProcessors();
+      threadPool.setMinThreads(cpuCores + 1);
+      threadPool.setMaxThreads(cpuCores * 2);
+      threadPool.setIdleTimeout(30000); // 30秒
+
+      apiServer = new Server(threadPool);
       ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
       context.setContextPath("/");
+
+      // HTTP配置优化
+      HttpConfiguration httpConfig = new HttpConfiguration();
+      httpConfig.setOutputBufferSize(256 * 1024);
+
+      ServerConnector connector = new ServerConnector(apiServer);
+      connector.addConnectionFactory(new HttpConnectionFactory(httpConfig));
+      connector.setPort(port);
+      apiServer.setConnectors(new Connector[] { connector });
+
+      // 配置gzip压缩
+      GzipHandler gzipHandler = new GzipHandler();
+      gzipHandler.setMinGzipSize(1024);//1KB
+      gzipHandler.setCompressionLevel(6);
+      gzipHandler.setInflateBufferSize(32 * 1024);
+
+      // 优化同步设置
+      gzipHandler.setSyncFlush(false); // 禁用同步刷新以提高性能
+      gzipHandler.setIncludedMethods("POST", "GET");
+      // 设置压缩类型
+      gzipHandler.setIncludedMimeTypes(
+          "text/html",
+          "text/plain",
+          "text/xml",
+          "text/css",
+          "application/json",
+          "application/javascript"
+      );
+      gzipHandler.setHandler(context);
+
       apiServer.setHandler(context);
 
       context.addServlet(new ServletHolder(getAccountServlet), "/wallet/getaccount");
@@ -404,19 +443,19 @@ public class FullNodeHttpApiService extends HttpService {
       context.addServlet(new ServletHolder(getDelegatedResourceServlet),
           "/wallet/getdelegatedresource");
       context.addServlet(new ServletHolder(getDelegatedResourceV2Servlet),
-              "/wallet/getdelegatedresourcev2");
+          "/wallet/getdelegatedresourcev2");
       context.addServlet(new ServletHolder(getCanDelegatedMaxSizeServlet),
-              "/wallet/getcandelegatedmaxsize");
+          "/wallet/getcandelegatedmaxsize");
       context.addServlet(new ServletHolder(getAvailableUnfreezeCountServlet),
-              "/wallet/getavailableunfreezecount");
+          "/wallet/getavailableunfreezecount");
       context.addServlet(new ServletHolder(getCanWithdrawUnfreezeAmountServlet),
-              "/wallet/getcanwithdrawunfreezeamount");
+          "/wallet/getcanwithdrawunfreezeamount");
       context.addServlet(
           new ServletHolder(getDelegatedResourceAccountIndexServlet),
           "/wallet/getdelegatedresourceaccountindex");
       context.addServlet(
-              new ServletHolder(getDelegatedResourceAccountIndexV2Servlet),
-              "/wallet/getdelegatedresourceaccountindexv2");
+          new ServletHolder(getDelegatedResourceAccountIndexV2Servlet),
+          "/wallet/getdelegatedresourceaccountindexv2");
       context.addServlet(new ServletHolder(setAccountServlet), "/wallet/setaccountid");
       context.addServlet(new ServletHolder(getAccountByIdServlet), "/wallet/getaccountbyid");
       context
@@ -525,6 +564,7 @@ public class FullNodeHttpApiService extends HttpService {
         apiServer.addBean(new ConnectionLimit(maxHttpConnectNumber, apiServer));
       }
 
+
       // filters the specified APIs
       // when node is lite fullnode and openHistoryQueryWhenLiteFN is false
       context.addFilter(new FilterHolder(liteFnQueryHttpFilter), "/*",
@@ -535,7 +575,7 @@ public class FullNodeHttpApiService extends HttpService {
           EnumSet.allOf(DispatcherType.class));
       // note: if the pathSpec of servlet is not started with wallet, it should be included here
       context.getServletHandler().getFilterMappings()[1]
-          .setPathSpecs(new String[] {"/wallet/*",
+          .setPathSpecs(new String[]{"/wallet/*",
               "/net/listnodes",
               "/monitor/getstatsinfo",
               "/monitor/getnodeinfo"});

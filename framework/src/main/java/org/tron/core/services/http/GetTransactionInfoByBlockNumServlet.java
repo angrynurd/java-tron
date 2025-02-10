@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import java.io.IOException;
 import java.util.List;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,13 @@ public class GetTransactionInfoByBlockNumServlet extends RateLimiterServlet {
 
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmupTx();
+  }
+
 
   private JSONObject convertLogAddressToTronAddress(TransactionInfo transactionInfo,
       boolean visible) {

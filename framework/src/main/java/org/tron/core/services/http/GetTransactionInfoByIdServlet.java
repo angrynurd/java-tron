@@ -3,6 +3,7 @@ package org.tron.core.services.http;
 import com.google.protobuf.ByteString;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +22,13 @@ public class GetTransactionInfoByIdServlet extends RateLimiterServlet {
 
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmupTx();
+  }
+
 
   private static String convertLogAddressToTronAddress(TransactionInfo transactionInfo,
       boolean visible) {

@@ -3,15 +3,20 @@ package org.tron.core.services.http;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.protobuf.ByteString;
+
 import java.io.IOException;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.tron.api.GrpcAPI.AssetIssueList;
 import org.tron.common.utils.ByteArray;
 import org.tron.core.Wallet;
+
+import static org.tron.core.services.http.AssetIssueUtil.serializeAssetList;
 
 
 @Component
@@ -20,6 +25,13 @@ public class GetAssetIssueListByNameServlet extends RateLimiterServlet {
 
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmuptrc10();
+  }
+
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
@@ -50,7 +62,9 @@ public class GetAssetIssueListByNameServlet extends RateLimiterServlet {
     AssetIssueList reply = wallet.getAssetIssueListByName(ByteString.copyFrom(
         ByteArray.fromHexString(value)));
     if (reply != null) {
-      response.getWriter().println(JsonFormat.printToString(reply, visible));
+      //String result = JsonFormat.printToString(reply, visible);
+      String result = serializeAssetList(reply, visible);
+      response.getWriter().println(result);
     } else {
       response.getWriter().println("{}");
     }

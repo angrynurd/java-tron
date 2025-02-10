@@ -3,6 +3,8 @@ package org.tron.core.services.http;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.protobuf.ByteString;
+
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,12 @@ public class GetAssetIssueByNameServlet extends RateLimiterServlet {
 
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmuptrc10();
+  }
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {

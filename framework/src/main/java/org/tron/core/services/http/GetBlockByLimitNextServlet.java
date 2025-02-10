@@ -1,6 +1,7 @@
 package org.tron.core.services.http;
 
 import java.io.IOException;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,13 @@ public class GetBlockByLimitNextServlet extends RateLimiterServlet {
   private static final long BLOCK_LIMIT_NUM = 100;
   @Autowired
   private Wallet wallet;
+
+  @PostConstruct
+  public void init() {
+    // 预热特定场景
+    JsonFormatWarmer.warmupBlocklist();
+  }
+
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     try {
@@ -43,6 +51,8 @@ public class GetBlockByLimitNextServlet extends RateLimiterServlet {
       HttpServletResponse response)
       throws IOException {
     if (endNum > 0 && endNum > startNum && endNum - startNum <= BLOCK_LIMIT_NUM) {
+      response.setHeader("Content-Encoding", "gzip");
+      response.setHeader("Transfer-Encoding", "chunked");
       BlockList reply = wallet.getBlocksByLimitNext(startNum, endNum - startNum);
       if (reply != null) {
         response.getWriter().println(JsonFormat.printToString(reply, visible));
